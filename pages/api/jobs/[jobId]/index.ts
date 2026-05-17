@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { cleanupExpiredJobs, getJob, serializeJob } from "@/src/server/jobs/store";
 
+export const config = {
+  runtime: "nodejs"
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse): Promise<void> {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");

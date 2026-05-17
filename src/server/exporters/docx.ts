@@ -1,8 +1,8 @@
 import { writeFile } from "node:fs/promises";
-import htmlToDocx from "html-to-docx";
 import { buildStandaloneHtml } from "@/src/server/exporters/html";
 
 export async function writeDocxOutput(filePath: string, contentHtml: string, title: string, sourceName: string): Promise<void> {
+  const { default: htmlToDocx } = await import("html-to-docx");
   const html = buildStandaloneHtml(contentHtml, { title, sourceName });
   const buffer = await htmlToDocx(html, null, {
     table: {

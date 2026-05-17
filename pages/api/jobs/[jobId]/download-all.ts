@@ -5,6 +5,7 @@ import { cleanupExpiredJobs, getJob } from "@/src/server/jobs/store";
 import type { OutputFormat } from "@/src/types/conversion";
 
 export const config = {
+  runtime: "nodejs",
   api: {
     responseLimit: false
   }

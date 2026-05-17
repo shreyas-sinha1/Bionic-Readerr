@@ -1,12 +1,6 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
-import { bionicizeHtmlFragment, normalizeBionicOptions } from "@/src/bionic/engine";
-import { writeDocxOutput } from "@/src/server/exporters/docx";
-import { writeHtmlOutput } from "@/src/server/exporters/html";
-import { writePdfOutput } from "@/src/server/exporters/pdf";
-import { writeTxtOutput } from "@/src/server/exporters/txt";
 import { getJob, updateFile, updateJob } from "@/src/server/jobs/store";
-import { parseSourceDocument } from "@/src/server/parsers";
 import { assertPathInside } from "@/src/server/security/fileValidation";
 import type { InternalConversionJob, InternalFileJob } from "@/src/server/jobs/types";
 import type { OutputFormat } from "@/src/types/conversion";
@@ -69,6 +63,7 @@ async function processFile(job: InternalConversionJob, file: InternalFileJob): P
     message: "Extracting readable text"
   });
 
+  const { parseSourceDocument } = await import("@/src/server/parsers");
   const parsed = await parseSourceDocument(file.inputPath, file.extension, file.originalName);
 
   updateFile(job.id, file.id, {
@@ -76,6 +71,10 @@ async function processFile(job: InternalConversionJob, file: InternalFileJob): P
     message: "Applying Bionic Reading fixation"
   });
 
+  const [{ bionicizeHtmlFragment, normalizeBionicOptions }, { writeHtmlOutput }] = await Promise.all([
+    import("@/src/bionic/engine"),
+    import("@/src/server/exporters/html")
+  ]);
   const options = normalizeBionicOptions(job.options);
   const convertedHtml = bionicizeHtmlFragment(parsed.html, options);
   const outputBase = path.join(job.outputDir, `${file.id}-${stripExtension(file.safeName)}`);
@@ -97,6 +96,7 @@ async function processFile(job: InternalConversionJob, file: InternalFileJob): P
     outputs
   });
 
+  const { writeTxtOutput } = await import("@/src/server/exporters/txt");
   const txtPath = `${outputBase}.txt`;
   assertPathInside(job.outputDir, txtPath);
   await writeTxtOutput(txtPath, parsed.text, options);
@@ -109,6 +109,7 @@ async function processFile(job: InternalConversionJob, file: InternalFileJob): P
   });
 
   try {
+    const { writePdfOutput } = await import("@/src/server/exporters/pdf");
     const pdfPath = `${outputBase}.pdf`;
     assertPathInside(job.outputDir, pdfPath);
     await writePdfOutput(pdfPath, convertedHtml, parsed.title, file.originalName);
@@ -124,6 +125,7 @@ async function processFile(job: InternalConversionJob, file: InternalFileJob): P
   });
 
   try {
+    const { writeDocxOutput } = await import("@/src/server/exporters/docx");
     const docxPath = `${outputBase}.docx`;
     assertPathInside(job.outputDir, docxPath);
     await writeDocxOutput(docxPath, convertedHtml, parsed.title, file.originalName);

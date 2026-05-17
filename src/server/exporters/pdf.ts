@@ -1,8 +1,7 @@
 import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import os from "node:os";
-import chromium from "@sparticuz/chromium";
-import puppeteer, { type Browser } from "puppeteer-core";
+import type { Browser } from "puppeteer-core";
 import { buildStandaloneHtml } from "@/src/server/exporters/html";
 
 export async function writePdfOutput(filePath: string, contentHtml: string, title: string, sourceName: string): Promise<void> {
@@ -36,6 +35,10 @@ export async function writePdfOutput(filePath: string, contentHtml: string, titl
 }
 
 async function launchBrowser(): Promise<Browser> {
+  const [{ default: chromium }, { default: puppeteer }] = await Promise.all([
+    import("@sparticuz/chromium"),
+    import("puppeteer-core")
+  ]);
   const executablePath = await resolveChromiumPath();
 
   return puppeteer.launch({
@@ -63,6 +66,7 @@ async function resolveChromiumPath(): Promise<string> {
   }
 
   try {
+    const { default: chromium } = await import("@sparticuz/chromium");
     const path = await chromium.executablePath();
     if (path && existsSync(path)) {
       return path;

@@ -5,6 +5,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { cleanupExpiredJobs, getJob } from "@/src/server/jobs/store";
 import type { OutputFormat } from "@/src/types/conversion";
 
+export const config = {
+  runtime: "nodejs"
+};
+
 const MIME_BY_FORMAT: Record<OutputFormat, string> = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -4,7 +4,6 @@ import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import Busboy from "busboy";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { enqueueJob } from "@/src/server/jobs/processor";
 import { addFileToJob, cleanupExpiredJobs, createJob, deleteJob, serializeJob, updateJob } from "@/src/server/jobs/store";
 import type { InternalFileJob } from "@/src/server/jobs/types";
 import {
@@ -15,6 +14,7 @@ import {
 import type { BionicOptions, Intensity } from "@/src/types/conversion";
 
 export const config = {
+  runtime: "nodejs",
   api: {
     bodyParser: false,
     responseLimit: false
@@ -50,9 +50,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       addFileToJob(job.id, file);
     }
 
-    job = job;
-    enqueueJob(job.id);
-    res.status(202).json(serializeJob(job));
+    const publicJob = serializeJob(job);
+    res.status(202).json(publicJob);
+
+    void import("@/src/server/jobs/processor")
+      .then(({ enqueueJob }) => enqueueJob(job.id))
+      .catch((error) => {
+        console.error("Failed to start conversion worker", error);
+        updateJob(job.id, {
+          status: "error",
+          progress: 100,
+          error: error instanceof Error ? error.message : "Failed to start conversion worker"
+        });
+      });
   } catch (error) {
     await deleteJob(job.id).catch(() => undefined);
     res.status(400).json({
