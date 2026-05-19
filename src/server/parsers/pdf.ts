@@ -1,7 +1,12 @@
-import "@napi-rs/canvas";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ParsedDocument } from "@/src/types/conversion";
+
+type CanvasPolyfills = {
+  DOMMatrix?: unknown;
+  ImageData?: unknown;
+  Path2D?: unknown;
+};
 
 interface PdfTextItem {
   str: string;
@@ -13,6 +18,7 @@ interface PdfTextItem {
 }
 
 export async function parsePdf(filePath: string, title = path.basename(filePath)): Promise<ParsedDocument> {
+  await installPdfNodePolyfills();
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const data = new Uint8Array(await readFile(filePath));
   const loadingTask = pdfjs.getDocument({
@@ -78,6 +84,18 @@ export async function parsePdf(filePath: string, title = path.basename(filePath)
       "PDF layout is reconstructed from text coordinates. Scanned image-only pages require OCR before conversion."
     ]
   };
+}
+
+async function installPdfNodePolyfills(): Promise<void> {
+  const canvas = (await import("@napi-rs/canvas")) as CanvasPolyfills;
+  const globalScope = globalThis as unknown as {
+    DOMMatrix?: unknown;
+    ImageData?: unknown;
+    Path2D?: unknown;
+  };
+  globalScope.DOMMatrix ??= canvas.DOMMatrix;
+  globalScope.ImageData ??= canvas.ImageData;
+  globalScope.Path2D ??= canvas.Path2D;
 }
 
 function round(value: number): number {

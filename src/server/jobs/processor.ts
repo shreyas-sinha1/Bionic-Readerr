@@ -39,6 +39,12 @@ export async function processJob(jobId: string): Promise<void> {
       await processFile(job, file);
       completed += 1;
     } catch (error) {
+      console.error("Conversion failed", {
+        jobId: job.id,
+        fileId: file.id,
+        file: file.originalName,
+        error
+      });
       failed += 1;
       updateFile(job.id, file.id, {
         status: "error",
