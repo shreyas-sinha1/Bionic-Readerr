@@ -1,3 +1,4 @@
+import "@napi-rs/canvas";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ParsedDocument } from "@/src/types/conversion";
